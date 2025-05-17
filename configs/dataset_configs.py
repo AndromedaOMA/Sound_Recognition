@@ -1,4 +1,3 @@
-import torch
 from pydantic import BaseModel
 
 

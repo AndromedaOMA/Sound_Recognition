@@ -105,4 +105,4 @@ if __name__ == "__main__":
     print(f"There are {len(usd)} samples!")
 
     signal, label = usd[0]
-    print(f"signal: {signal}\nlabel: {label}")
+    print(f"signal: {signal}\nlabel: {label}\nshape signal: {signal.shape}\nshape label: {label.shape}")
