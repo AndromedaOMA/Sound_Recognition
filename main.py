@@ -1,48 +1,33 @@
 import torch
-from torch import nn
-from torch.utils.data import DataLoader
-from torch.utils.data import Dataset
 import torchaudio
-import pandas as pd
-import os
-
-
-class UrbanSoundDataset(Dataset):
-    def __init__(self, annotations_file, audio_dir):
-        self.annotations = pd.read_csv(annotations_file)
-        self.audio_dir = audio_dir
-
-    def __len__(self):
-        return len(self.annotations)
-
-    def __getitem__(self, index):
-        audio_sample_path = self._get_audio_sample_path(index)
-        label = self._get_audio_ample_label(index)
-        signal, sample_rate = torchaudio.load(audio_sample_path)
-        return signal, label
-
-    def _get_audio_sample_path(self, index):
-        folder = f"fold{self.annotations.iloc[index, 5]}"
-        path = os.path.join(self.audio_dir, folder, self.annotations.iloc[index, 0])
-        return path
-
-    def _get_audio_ample_label(self, index):
-        return self.annotations.iloc[index, 6]
-
+from configs.dataset_configs import DatasetConfigs
+from dataset.urban_sound_8k import UrbanSoundDataset
 
 if __name__ == "__main__":
-    ANNOTATIONS_FILE = "E:/UrbanSound8k/metadata/UrbanSound8K.csv"
-    AUDIO_DIR = "E:/UrbanSound8k/audio"
-    SAMPLE_RATE = 16000
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    print(f"device: {device}")
 
-    mel_spectogram = torchaudio.transforms.MelSpectrogram(
-        sample_rate=SAMPLE_RATE,
+    dataset_configs = DatasetConfigs()
+
+    # print(f"dataset_configs.ANNOTATIONS_FILE: {dataset_configs.ANNOTATIONS_FILE},\n"
+    #       f"dataset_configs.AUDIO_DIR: {dataset_configs.AUDIO_DIR},\n"
+    #       f"dataset_configs.SAMPLE_RATE: {dataset_configs.SAMPLE_RATE},\n"
+    #       f"dataset_configs.NUM_SAMPLES: {dataset_configs.NUM_SAMPLES}\n")
+
+    mel_spectrogram = torchaudio.transforms.MelSpectrogram(
+        sample_rate=dataset_configs.SAMPLE_RATE,
         n_fft=1024,
         hop_length=512,
         n_mels=64
     )
 
-    usd = UrbanSoundDataset(ANNOTATIONS_FILE, AUDIO_DIR)
+    usd = UrbanSoundDataset(dataset_configs.ANNOTATIONS_FILE,
+                            dataset_configs.AUDIO_DIR,
+                            mel_spectrogram,
+                            dataset_configs.SAMPLE_RATE,
+                            dataset_configs.NUM_SAMPLES,
+                            device)
+
     print(f"There are {len(usd)} samples!")
 
     signal, label = usd[0]
