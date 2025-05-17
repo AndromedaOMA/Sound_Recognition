@@ -11,7 +11,7 @@
 --------------------------------------------------------------------------------
 <h1 id="project" align="left">🤖 About Project</h1>
 
-The main objective of this project is to recognize speech and provide transcripts associated with speech in real time. The architecture is compact but efficient, leveraging a well-structured dataset provided by the **TorchAudio** library.
+The Sound Recognition Model is a compact and efficient network tailored for sound classification tasks, suitable for both training and deployment in real-time systems. The architecture is compact but efficient, leveraging a well-structured dataset provided by the **TorchAudio** library.
 
 ---
 
@@ -46,6 +46,6 @@ Next, we will pad each sample in the set to a standard size. Before loading and 
 ---
 
 > 📝 **Note**:  
-> By completing this project, we emphasized our knowledge of Deep Learning in order to develop and complete the bachelor's project that solves the Speech Enhancement task.
+> By completing this project, I emphasized my knowledge of Deep Learning in order to develop and complete the bachelor's project that solves the Speech Enhancement task.
 
 * [Table Of Content](#table-of-content)
