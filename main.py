@@ -22,7 +22,7 @@ class UrbanSoundDataset(Dataset):
         return signal, label
 
     def _get_audio_sample_path(self, index):
-        folder = f"fold_{self.annotations.iloc[index, 5]}"
+        folder = f"fold{self.annotations.iloc[index, 5]}"
         path = os.path.join(self.audio_dir, folder, self.annotations.iloc[index, 0])
         return path
 
@@ -31,8 +31,8 @@ class UrbanSoundDataset(Dataset):
 
 
 if __name__ == "__main__":
-    ANNOTATIONS_FILE = ""
-    AUDIO_DIR = ""
+    ANNOTATIONS_FILE = "E:/UrbanSound8k/metadata/UrbanSound8K.csv"
+    AUDIO_DIR = "E:/UrbanSound8k/audio"
     SAMPLE_RATE = 16000
 
     mel_spectogram = torchaudio.transforms.MelSpectrogram(
@@ -43,3 +43,7 @@ if __name__ == "__main__":
     )
 
     usd = UrbanSoundDataset(ANNOTATIONS_FILE, AUDIO_DIR)
+    print(f"There are {len(usd)} samples!")
+
+    signal, label = usd[0]
+    print(f"signal: {signal}\nlabel: {label}")
