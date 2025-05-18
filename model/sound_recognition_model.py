@@ -1,3 +1,5 @@
+import json
+
 from torch import nn
 from torchsummary import summary
 from configs.model_configs import ModelConfigs
@@ -40,5 +42,7 @@ class SoundRecognitionModel(nn.Module):
 
 if __name__ == "__main__":
     model_configs = ModelConfigs()
+    with open("model_config.json", mode="w", encoding="utf-8") as file:
+        json.dump(model_configs.__dict__, file, indent=4)
     model = SoundRecognitionModel(model_configs).cuda()
     summary(model, (1, 64, 44))

@@ -15,3 +15,8 @@ class ModelConfigs(BaseModel):
     p_stride1: int = 4
     p_kernel2: int = 2
     p_stride2: int = 2
+
+    """train"""
+    batch_size: int = 64
+    epochs: int = 10
+    learning_rate: float = 0.01
