@@ -1,7 +1,8 @@
+import numpy as np
 import torch
 import torchaudio
 from torch import nn
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 from tqdm import tqdm
 
 from configs.dataset_configs import DatasetConfigs
@@ -10,9 +11,10 @@ from dataset.urban_sound_8k import UrbanSoundDataset
 from model.sound_recognition_model import SoundRecognitionModel
 
 
-def create_data_loader(train_data, batch_size):
-    train_dataloader = DataLoader(train_data, batch_size)
-    return train_dataloader
+def get_fold_indices(df, fold):
+    train_idx = df[df['fold'] != fold].index.tolist()
+    test_idx = df[df['fold'] == fold].index.tolist()
+    return train_idx, test_idx
 
 
 def check_acc(data_loader, model):
@@ -30,13 +32,12 @@ def check_acc(data_loader, model):
             no_correct += (predicted_labels == target).sum().item()
             no_samples += target.size(0)
 
-    acc = no_correct / no_samples
-    print(f"Accuracy: {acc * 100:.2f}%")
+    train_acc = no_correct / no_samples
     model.train()
-    return acc
+    return train_acc
 
 
-def train_single_epoch(model, data_loader, loss_fn, optimizer, device):
+def train_per_epoch(model, data_loader, loss_fn, optimizer, device):
     for _, (input, target) in enumerate(tqdm(data_loader)):
         input, target = input.to(device), target.to(device)
 
@@ -49,7 +50,7 @@ def train_single_epoch(model, data_loader, loss_fn, optimizer, device):
 
     train_acc = check_acc(data_loader, model)
 
-    print(f"loss: {loss.item()}, train_acc: {train_acc}")
+    print(f"Loss: {loss.item():.2f}%, Train Accuracy: {train_acc * 100:.2f}%")
 
 
 def train(model, data_loader, loss_fn, optimizer, device, epochs):
@@ -59,7 +60,7 @@ def train(model, data_loader, loss_fn, optimizer, device, epochs):
 
     for epoch in range(epochs):
         print(f"Epoch: {epoch + 1}/{epochs}")
-        train_single_epoch(model, data_loader, loss_fn, optimizer, device)
+        train_per_epoch(model, data_loader, loss_fn, optimizer, device)
 
         acc = check_acc(data_loader, model)
         if acc > best_acc:
@@ -82,6 +83,9 @@ if __name__ == "__main__":
     dataset_configs = DatasetConfigs()
     model_configs = ModelConfigs()
 
+    model = SoundRecognitionModel(model_configs).to(device)
+    print(f"SoundRecognitionModel:\n{model}")
+
     mel_spectrogram = torchaudio.transforms.MelSpectrogram(
         sample_rate=dataset_configs.SAMPLE_RATE,
         n_fft=1024,
@@ -96,14 +100,31 @@ if __name__ == "__main__":
                             dataset_configs.NUM_SAMPLES,
                             device)
 
-    train_dataloader = create_data_loader(usd, model_configs.batch_size)
+    accuracies = []
 
-    model = SoundRecognitionModel(model_configs).to(device)
-    print(f"SoundRecognitionModel:\n{model}")
+    # train_dataloader = create_data_loader(usd, model_configs.batch_size)
+    for idx_fold in range(1, 11):
+        print(f"\n=== Test fold index: {idx_fold} ===")
 
-    loss_fn = nn.CrossEntropyLoss()
-    optimiser = torch.optim.Adam(model.parameters(), model_configs.learning_rate)
+        train_idx, test_idx = get_fold_indices(usd.annotations, idx_fold)
 
-    train(model, train_dataloader, loss_fn, optimiser, device, model_configs.epochs)
+        train_subset = Subset(usd, train_idx)
+        test_subset = Subset(usd, test_idx)
+
+        train_loader = DataLoader(train_subset, batch_size=model_configs.batch_size, shuffle=True)
+        test_loader = DataLoader(test_subset, batch_size=model_configs.batch_size)
+
+        loss_fn = nn.CrossEntropyLoss()
+        optimiser = torch.optim.Adam(model.parameters(), model_configs.learning_rate)
+
+        train(model, train_loader, loss_fn, optimiser, device, model_configs.epochs)
+
+        acc = check_acc(test_loader, model)
+        accuracies.append(acc)
+
+    # Results
+    accuracies = np.array(accuracies)
+    print(f"\nMean Accuracy: {accuracies.mean() * 100:.2f}%")
+    print(f"Standard Deviation: {accuracies.std() * 100:.2f}%")
 
     torch.save(model.state_dict(), "SoundRecognitionModel.pth")

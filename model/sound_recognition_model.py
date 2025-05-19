@@ -30,7 +30,7 @@ class SoundRecognitionModel(nn.Module):
             nn.GELU(),
             nn.Dropout(0.1),
             nn.Linear(configs.mid_channels, 10),
-            # nn.Softmax(dim=1)
+            # nn.LogSoftmax(dim=1)
         )
 
     def forward(self, batch):
