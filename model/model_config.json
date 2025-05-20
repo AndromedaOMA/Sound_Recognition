@@ -9,6 +9,6 @@
     "p_kernel2": 2,
     "p_stride2": 2,
     "batch_size": 32,
-    "epochs": 10,
-    "learning_rate": 0.01
+    "epochs": 100,
+    "learning_rate": 0.006
 }

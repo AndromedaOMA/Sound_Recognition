@@ -55,7 +55,7 @@ if __name__ == "__main__":
                             dataset_configs.NUM_SAMPLES,
                             device)
 
-    input, target = usd[0][0], usd[0][1]  # tensor(no_channels, fr, time)
+    input, target = usd[51][0], usd[51][1]  # tensor(no_channels, fr, time)
     input.unsqueeze_(0)  # tensor(batch_size, no_channels, fr, time)
 
     predicted, expected = predict(model, input, target, class_mapping)

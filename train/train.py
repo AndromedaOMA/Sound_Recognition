@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 import torchaudio
 from torch import nn
@@ -11,19 +10,23 @@ from dataset.urban_sound_8k import UrbanSoundDataset
 from model.sound_recognition_model import SoundRecognitionModel
 
 
+"""
+Train acc: 43.35%
+"""
+
 def get_fold_indices(df, fold):
     train_idx = df[df['fold'] != fold].index.tolist()
     test_idx = df[df['fold'] == fold].index.tolist()
     return train_idx, test_idx
 
 
-def check_acc(data_loader, model):
+def check_acc(train_loader, model):
     no_correct = 0
     no_samples = 0
     model.eval()
 
     with torch.no_grad():
-        for input, target in data_loader:
+        for input, target in train_loader:
             input, target = input.to(device), target.to(device)
 
             prediction = model(input)
@@ -37,8 +40,8 @@ def check_acc(data_loader, model):
     return train_acc
 
 
-def train_per_epoch(model, data_loader, loss_fn, optimizer, device):
-    for _, (input, target) in enumerate(tqdm(data_loader)):
+def train_per_epoch(model, train_loader, test_loader, loss_fn, optimizer, device):
+    for _, (input, target) in enumerate(tqdm(train_loader)):
         input, target = input.to(device), target.to(device)
 
         prediction = model(input)
@@ -48,23 +51,26 @@ def train_per_epoch(model, data_loader, loss_fn, optimizer, device):
         loss.backward()
         optimizer.step()
 
-    train_acc = check_acc(data_loader, model)
+    train_acc = check_acc(train_loader, model)
+    test_acc = check_acc(test_loader, model)
 
-    print(f"Loss: {loss.item():.2f}%, Train Accuracy: {train_acc * 100:.2f}%")
+    print(f"Loss: {loss.item():.2f}%, "
+          f"Train Accuracy: {train_acc * 100:.2f}%, "
+          f"Test Accuracy: {test_acc * 100:.2f}%")
 
 
-def train(model, data_loader, loss_fn, optimizer, device, epochs):
+def train(model, train_loader, test_loader, loss_fn, optimizer, device, epochs):
     patience = 10
     best_acc = 0
     no_improve_epochs = 0
 
     for epoch in range(epochs):
         print(f"Epoch: {epoch + 1}/{epochs}")
-        train_per_epoch(model, data_loader, loss_fn, optimizer, device)
+        train_per_epoch(model, train_loader, test_loader, loss_fn, optimizer, device)
 
-        acc = check_acc(data_loader, model)
-        if acc > best_acc:
-            best_acc = acc
+        train_acc = check_acc(train_loader, model)
+        if train_acc > best_acc:
+            best_acc = train_acc
             no_improve_epochs = 0
             torch.save(model.state_dict(), "best_model.pth")
         else:
@@ -100,31 +106,17 @@ if __name__ == "__main__":
                             dataset_configs.NUM_SAMPLES,
                             device)
 
-    accuracies = []
+    train_idx, test_idx = get_fold_indices(usd.annotations, 1)
 
-    # train_dataloader = create_data_loader(usd, model_configs.batch_size)
-    for idx_fold in range(1, 11):
-        print(f"\n=== Test fold index: {idx_fold} ===")
+    train_subset = Subset(usd, train_idx)
+    test_subset = Subset(usd, test_idx)
 
-        train_idx, test_idx = get_fold_indices(usd.annotations, idx_fold)
+    train_loader = DataLoader(train_subset, batch_size=model_configs.batch_size)
+    test_loader = DataLoader(test_subset, batch_size=model_configs.batch_size)
 
-        train_subset = Subset(usd, train_idx)
-        test_subset = Subset(usd, test_idx)
+    loss_fn = nn.CrossEntropyLoss()
+    optimiser = torch.optim.Adam(model.parameters(), model_configs.learning_rate)
 
-        train_loader = DataLoader(train_subset, batch_size=model_configs.batch_size, shuffle=True)
-        test_loader = DataLoader(test_subset, batch_size=model_configs.batch_size)
-
-        loss_fn = nn.CrossEntropyLoss()
-        optimiser = torch.optim.Adam(model.parameters(), model_configs.learning_rate)
-
-        train(model, train_loader, loss_fn, optimiser, device, model_configs.epochs)
-
-        acc = check_acc(test_loader, model)
-        accuracies.append(acc)
-
-    # Results
-    accuracies = np.array(accuracies)
-    print(f"\nMean Accuracy: {accuracies.mean() * 100:.2f}%")
-    print(f"Standard Deviation: {accuracies.std() * 100:.2f}%")
+    train(model, train_loader, test_loader, loss_fn, optimiser, device, model_configs.epochs)
 
     torch.save(model.state_dict(), "SoundRecognitionModel.pth")

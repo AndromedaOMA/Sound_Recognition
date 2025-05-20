@@ -18,5 +18,5 @@ class ModelConfigs(BaseModel):
 
     """train"""
     batch_size: int = 32
-    epochs: int = 10
-    learning_rate: float = 0.01
+    epochs: int = 100
+    learning_rate: float = 0.006
