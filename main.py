@@ -36,7 +36,8 @@ if __name__ == "__main__":
 
     model_configs = ModelConfigs()
     model = SoundRecognitionModel(model_configs).to(device)
-    state_dict = torch.load("train/SoundRecognitionModel.pth")
+    # state_dict = torch.load("train/SoundRecognitionModel.pth")
+    state_dict = torch.load("train/best_model.pth")
     model.load_state_dict(state_dict)
 
     dataset_configs = DatasetConfigs()
